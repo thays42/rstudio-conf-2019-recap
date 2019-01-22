@@ -1,0 +1,841 @@
+---
+title: "`rstudio::conf(2019L)`"
+subtitle: "January 15-19 @ Austin, Texas"
+author: "Tyler Hays"
+date: "`r Sys.Date()`"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+```
+class: center, middle, inverse
+
+# The Conference
+
+---
+
+background-image: url('img/rstudio-conf.png')
+background-size: contain 
+
+???
+
+Notes:
+- Conference held over four days in Austin, TX
+- Roughly 1800 attendees
+- Breakfast, conference content, lunch, conference content, evening social event
+- Lots of networking, lots of exposure to R content and thinking about problems 
+  in the context of R
+
+---
+
+class: center, middle, inverse
+
+# The Workshop
+
+???
+
+Notes:
+- First, I'll talk about the workshop I attended on "Applied Machine Learning"
+
+---
+
+# Applied Machine Learning
+
+For about 16 hours over the course of two days, two rooms of 350 people each 
+went on a journey to learn the up and coming tools of tidy data science focused 
+on modeling.
+
+???
+
+Notes: 
+- They structured this workshop to take place in two parallel sessions, with 
+  Max Kuhn splitting his time between the two.
+- Two summer interns that worked with Max took on the other half of instruction.
+- The setup was not executed well due to conflicting teaching styles and timing. 
+- That said, this workshop was a great introduction to the packages they are 
+  working on to tidy the world of modeling.
+- All the slide decks for this workshop are on GitHub, and I have posted links
+  on the #MachineLearning Slack channel.
+
+--
+
+- `parsnip` aims to provide a standard interface to modeling packages
+
+???
+
+Notes:
+- First, the `parsnip` package, which is the spiritual successor to `caret`.
+- `parsnip` aims to provide a standard interface to modeling packages and tools,
+  such as `ranger` for random forests, `glmnet` for penalized regressions,
+  and the basic `lm` function for regular regressions.
+
+---
+
+background-image: url('img/model-syntax.png')
+background-size: contain 
+
+???
+
+Notes:
+- This table was used to illustrate the problem `parsnip` wants to solve.
+- Since these packages are typically designed in silos, without concern for
+  standardization, there is great diversity in parameters, outputs, and 
+  behavior.
+- This objective of standardization appears to be a sort of prime directive 
+  among these packages.
+
+---
+
+class: middle
+```{r parsnip-setup, include=FALSE}
+library(tidymodels)
+library(AmesHousing)
+
+ames <- make_ames() %>%
+    dplyr::select(-matches("Qu"))
+
+set.seed(4595)
+data_split <- initial_split(ames, strata = "Sale_Price")
+ames_train <- training(data_split)
+ames_test  <- testing(data_split)
+```
+
+```{r parsnip-demo}
+spec_lin_reg <- linear_reg()
+spec_lin_reg
+
+spec_lm <- set_engine(spec_lin_reg, "lm")
+spec_lm
+```
+
+???
+
+Notes:
+- Here, we see this notion of model "specifications", where you first tell 
+  `parsnip` what you want to do.
+- Then, you can set the "engine" for your specification, i.e. what package or 
+  method do you want to use for executing your specification?
+  
+---
+
+class: middle
+```{r parsnip-demo2}
+fit_lm <- fit(spec_lm, 
+              log10(Sale_Price) ~ Longitude + Latitude,
+              data = ames_train)
+fit_lm
+```
+
+???
+
+Notes: 
+- Fitting the model is then done using a "fit" function. Here, the default fit
+  function takes a specification, a formula, and data to train the model.
+- The added value here is that if packages do not provide a formula method, 
+  instead requiring you to set "y" to your outcome and "x" to your predictors,
+  `parsnip` will do this for you.
+  
+---
+
+class: middle
+
+```{r parsnip-demo2b}
+fit_lm <- fit_xy(spec_lm, 
+                 y = log10(ames_train$Sale_Price),
+                 x = ames_train[, c("Longitude", "Latitude")])
+fit_lm
+```
+
+???
+
+Notes:
+- You are also free to specify your model in this "X-Y" format.
+
+---
+
+class: middle
+```{r parsnip-demo3}
+predict(fit_lm, new_data = ames_test)
+```
+
+???
+
+Notes: 
+- Then, you get a "predict" function. This prediction function also takes a `type`
+  parameter, which takes one of a few standardized names, i.e. "class", "prob", 
+  "conf_int", "pred_int", "quantile", etc.
+  
+---
+
+# Applied Machine Learning
+
+For about 16 hours over the course of two days, two rooms of 350 people each 
+went on a journey to learn the up and coming tools of tidy data science focused 
+on modeling.
+
+- `parsnip` aims to provide a standard interface to modeling packages.
+- `recipes` aims to provide a standard interface to preprocessing.
+
+???
+
+Notes:
+- The next package, `recipes`, aims to provide a standard interface for data 
+  preprocessing tasks. This package's design is really interesting!
+
+---
+
+class: middle
+
+```{r, recipes-setup}
+mod_rec <- recipe(
+    Sale_Price ~ Longitude + Latitude + Neighborhood, 
+    data = ames_train
+  ) %>%
+  step_log(Sale_Price, base = 10) %>%
+  # Lump factor levels that occur in 
+  # <= 5% of data as "other"
+  step_other(Neighborhood, threshold = 0.05) %>%
+  # Create dummy variables for _any_ factor variables
+  step_dummy(all_nominal())
+mod_rec
+```
+
+???
+
+Notes: 
+- The way this works is the recipe takes a formula and a data frame, which
+  serve to provide the recipe object with metadata (column names, types) and
+  a beginning understanding the role of each column that matters.
+- The recipe is made up of "steps", which take the form of "do this transformation
+  to these columns". There are a large number of provided steps, as well as the
+  ability to create custom steps or embed `dplyr` verbs in steps.
+- Because this is ultimately a lazy object, that is, a plan of what will be done, and
+  the set of variables can change from step to step and be dependent on data (such as
+  `step_other`), it provides these selector-helpers, such as `all_nominal`. 
+  `dplyr` selectors like `matches` or `starts_with` also work.
+- The cool thing about this recipe object is that it is built incrementally,
+  so you could take a recipe as one version of your feature engineering, and then
+  build upon it into another recipe with more steps. 
+- This design seems particularly interesting when considering how we might approach
+  designing packages for CR, especially for `minuteman`, which has a lot of 
+  specification steps that are often subject to sensitivities.
+
+---
+
+class: middle
+
+```{r, recipes-prep}
+mod_rec_trained <- prep(mod_rec, training = ames_train, 
+                        verbose = TRUE)
+mod_rec_trained
+```
+
+???
+
+Notes: 
+- Once you have a recipe, you `prep` it on training data. Effectively running it. 
+- Certain steps, like `step_other`, do have this notion of "training". Consider
+  what might happen if the test data, for example, has a `Neighborhood` value the
+  training dataset did not. This recipe, since it has been prepped, will know to 
+  put those in the "Other" category.
+- The `prep` function, by default, retains the prepared training data. This data
+  can be accessed using the `juice` function, in case you want to do anything
+  with that, such as EDA or visualizations.
+  
+---
+
+class: middle
+
+```{r, recipes-bake}
+ames_test_dummies <- bake(mod_rec_trained, new_data = ames_test)
+ames_test_dummies
+```
+
+???
+
+Notes:
+- Once you have a prepped or trained recipe, you can `bake` it using new data,
+  such as your test data.
+- On the naming scheme here, Max explains that he really just wanted to stick with
+  the theme of cooking, and felt that the `juice` and `bake` names fit well
+  with the difference between these functions. Your agreement might vary.
+  
+---
+
+# Applied Machine Learning
+
+For about 16 hours over the course of two days, two rooms of 350 people each went on a journey to learn the up and coming tools of tidy data science focused on modeling.
+
+- `parsnip` aims to provide a standard interface to modeling packages.
+- `recipes` aims to provide a standard interface to preprocessing.
+- `rsample` aims to provide a standard interface to resampling.
+
+???
+
+Notes:
+- Next, `rsample` aims to address the resampling part of this workflow, namely
+  bootstrapping and cross validation.
+  
+---
+
+background-image: url('img/resampling.png')
+background-size: contain 
+
+???
+
+Notes:
+- Max spent a not-insignificant amount of time talking about how he believes
+  people should "spend their data", which is visualized in this chart.
+- The idea is you should initially split your data into training and test sets,
+  saving the test set for the very end, so that you do you not develop towards
+  optimizing for the test set. 
+- Then, to make the most use of your training set, you should resample it, creating
+  `k` pairs of "training" and "test" sets. To disambiguate between the grand training
+  and test sets and these resampled versions, he terms the resampled versions
+  "analysis" and "assessment". 
+  
+---
+
+class: middle
+
+```{r, rsample-demo}
+set.seed(2453)
+cv_splits <- vfold_cv(
+  data = ames_train, 
+  v = 10, 
+  strata = "Sale_Price"
+)
+cv_splits %>% 
+    slice(1:6) %>% 
+    mutate(analysis_df = map(splits, analysis),
+           assessment_df = map(splits, assessment))
+```
+
+???
+
+Notes:
+- The implementation makes use of list columns, generating a data frame where
+  each record represents a split of the training data. 
+- Here, I am using the `map` function to extract the "analysis" and "assessment"
+  data frames from the `splits` column into separate columns. However, the promoted
+  way to do this would be to use the `analysis` and `assessment` functions within 
+  functions that bake a recipe, assess fit, etc.
+- The benefit here is that within the organizing structure of a data frame, we 
+  can organize resampling specifications, the preprocessing recipe, and measures of
+  fit all within one row.
+  
+---
+
+# Applied Machine Learning
+
+For about 16 hours over the course of two days, two rooms of 350 people each went on a journey to learn the up and coming tools of tidy data science focused on modeling.
+
+- `parsnip` aims to provide a standard interface to modeling packages.
+- `recipes` aims to provide a standard interface to preprocessing.
+- `rsample` aims to provide a standard interface to resampling.
+- `dials` aims to provide a standard interface to grid searching.
+
+???
+
+Notes:
+- Then there is the `dials` package, aimed at the model tuning workflow.
+
+---
+
+class: middle
+```{r, dials-demo}
+param_grid <- neighbors %>%
+    range_set(c(1, 10)) %>%
+    grid_regular(levels = 10)
+param_grid
+```
+
+???
+
+Notes:
+- Here, we are setting up a grid for the hyperparameter in a KNN model ("K").
+
+---
+
+class: middle
+```{r}
+spec_knn_varying <- nearest_neighbor(
+    neighbors = varying()
+) %>%
+    set_engine("kknn") %>%
+    set_mode("regression")
+spec_knn_varying
+```
+
+???
+
+Notes:
+- We are then setting up a nearest neighbor model specification, indicating the
+  intention to grid search the neighbors hyper parameter.
+
+---
+
+class: middle
+```{r}
+param_grid <- param_grid %>%
+    mutate(specs = merge(., spec_knn_varying))
+param_grid
+```
+
+???
+
+Notes:
+- Then we merge the specification and the parameter grid.
+
+---
+
+class: middle
+```{r}
+param_grid$specs[[1]]
+```
+
+???
+
+Notes:
+- And we can see the model specifications are now fully hyper-parameterized.
+
+---
+
+# Applied Machine Learning
+
+For about 16 hours over the course of two days, two rooms of 350 people each went on a journey to learn the up and coming tools of tidy data science focused on modeling.
+
+- `parsnip` aims to provide a standard interface to modeling packages.
+- `recipes` aims to provide a standard interface to preprocessing.
+- `rsample` aims to provide a standard interface to resampling.
+- `dials` aims to provide a standard interface to grid searching.
+- **`tidymodels` aims to provide a standard interface for modeling tasks.**
+
+.footnote[Workshop material: https://github.com/topepo/rstudio-conf-2019]
+
+???
+
+Notes:
+- Ultimately, the `tidymodels` family of packages, including these and more, including
+  the `broom` package for extracting standard and tidy summaries and details from model objects,
+  is all about developing this workbench for modeling and solving the problem endemic 
+  among R packages: a lack of standardization.
+  
+---
+
+class: center, middle, inverse
+
+# Keynotes
+
+???
+
+Notes:
+- Next I want to briefly discuss the keynotes. These are going to be posted online
+  and those videos will do them more justice than I am capable of in this presentation.
+  
+---
+
+# Keynotes
+
+## Joe Cheng (CTO, RStudio) 
+### [Shiny in Production](https://speakerdeck.com/jcheng5/shiny-in-production) 
+
+???
+
+Notes:
+- Joe Cheng talked about Shiny in Production. While we do not make use of shiny that
+  much, this talk made it very clear RStudio is very interested in helping people
+  better argue for using Shiny (and R in general) in production environments.
+- Of specific note, this talk was largely about the more developer / engineer aspects
+  of developing things like Shiny apps. Concepts like testing (both the R functions
+  underlying the app as well as integration testing) and profiling. 
+  
+--
+
+## Felienne (Associate Professor, LIACS)
+### [Explicit Direct Instruction in Programming Education](http://www.felienne.com/archives/6150)
+
+???
+
+Notes:
+- This was a really great talk about the state of programming education, and the
+  conflict between the incumbent "learning programming should be about fun and
+  exploring" camp and the more evidence-backed "programming education should be 
+  guided, direct, even at the expense of fun" camp.
+- The speaker did her PhD dissertation about how Excel is a DSL for finance, and
+  explaining that Excel is functional, reactive, and Turing complete.
+
+--
+
+## David Robinson (Chief Data Scientist, DataCamp)
+### [The Unreasonable Effectiveness of Public Work](https://www.dropbox.com/s/jk7216yr30ztpdp/DavidRobinson-RStudio-2019.pdf?dl=0)
+
+???
+
+Notes:
+- This was a really inspiring talk about learning and working in public, largely
+  via twitter (short-form sharing), blogs (medium-form sharing), and books (long-form sharing),
+  in addition to screencasts (new-age sharing) and packages.
+- The pitch is that maintaining a public body of work is great for your professional image,
+  growth, and exposure to the community.
+
+---
+
+class: center, middle, inverse
+
+# Talks
+
+???
+
+Notes: 
+- Now I'll link to some of the talks I found particularly interesting, along 
+  with the slides.
+- The conference was live streamed, so these videos should be coming out soon.
+- However, some talks, especially in the first block, had atrocious audio-video
+  issues.
+
+---
+
+# Interop
+
+## Wes McKinney
+### [Ursa Labs and Apache Arrow in 2019](https://www.slideshare.net/wesm/ursa-labs-and-apache-arrow-in-2019)
+
+???
+
+Notes:
+- Wes lost half his talk to A/V issues. The main pitch is that a lot of compute
+  time and headaches is wasted on serializing data for interop between tools.
+- Wes and his Ursa Labs, supported by RStudio and other companies, wants to 
+  tackle this with the Apache Arrow project, and this effort is ongoing.
+
+---
+
+background-image: url('img/arrow.jpg')
+background-size: contain 
+
+???
+
+Notes:
+- The value proposition is simplicity and defragmentation.
+
+---
+
+# Interop
+
+## Wes McKinney
+### [Ursa Labs and Apache Arrow in 2019](https://www.slideshare.net/wesm/ursa-labs-and-apache-arrow-in-2019)
+
+## Jonathan McPherson
+### [New Language Features in RStudio 2019](https://github.com/jmcphers/rstudio-1.2-features)
+
+???
+
+Notes:
+- RStudio 1.2 is going to be a great release for using Python and SQL with RStudio.
+- With the `reticulate`, RStudio can embedded a Python session within the R session,
+  allowing for execution of Python code (from Python scripts).
+- RStudio will also support running code from SQL files against a connection.
+- RStudio will also have a job launcher, which at its simplest will allow for 
+  launching background source jobs from within RStudio, and at its most complicated
+  will allow launching a containerized job to a different compute context.
+- RStudio had a series of blog posts about this.
+
+---
+
+# Interop
+
+## Wes McKinney
+### [Ursa Labs and Apache Arrow in 2019](https://www.slideshare.net/wesm/ursa-labs-and-apache-arrow-in-2019)
+
+## Jonathan McPherson
+### [New Language Features in RStudio 2019](https://github.com/jmcphers/rstudio-1.2-features)
+
+## Edgar Ruiz
+### [Databases Using R: The Latest](https://db.rstudio.com/tidypredict/)
+
+???
+
+Notes:
+- The Databases Using R talk largely focused on BigQuery and the cool things
+  they are doing with dplyr-generated SQL queries.
+- The exciting thing about this talk was the `tidypredict` package, which can
+  translate the prediction function of certain models (including `lm`, `ranger`)
+  into SQL queries.
+  
+---
+# `tidypredict`
+
+```{r}
+library(tidypredict)
+
+lm_model <- lm(mpg ~ wt + cyl, data = mtcars)
+tidypredict_sql(lm_model, dbplyr::simulate_dbi())
+
+rf_model <- ranger::ranger(mpg ~ wt + cyl, data = mtcars, num.trees = 2)
+tidypredict_sql(rf_model, dbplyr::simulate_dbi())
+```
+
+???
+
+Notes:
+- The Databases Using R talk largely focused on BigQuery and the cool things
+  they are doing with dplyr-generated SQL queries.
+- The exciting thing about this talk was the `tidypredict` package, which can
+  translate the prediction function of certain models (including `lm`, `ranger`)
+  into SQL queries.
+  
+---
+
+# Package Management
+
+## Sean Lopp
+### [Announcing RStudio Package Manager](https://www.rstudio.com/products/package-manager/)
+
+???
+
+Notes: 
+- One of my goals at this conference was to understand what the RStudio Package Manager
+  was and if it solved a problem for us.
+- At its core, RStudio Package Manager is a shiny interface on top of an internal
+  package repository (CRAN, packages from GitHub, internal packages), with tools
+  for version control and analysis of package licenses.
+- If we wanted to pay $5,000 to block all CRAN mirrors (+ GitHub?) and have an 
+  internally hosted CRAN repo, with extensive versioning information, this is
+  the product for us. \$10,000 gets us a high-availability license, and \$25,000
+  gets us unlimited repositories.
+- The use case for this appears to be for companies where users are installing 
+  packages themselves, or people are launching containerized jobs which need to 
+  install very specific versions of packages.
+  
+---
+
+background-image: url('img/rspm-rstudio-conf.png')
+background-size: contain 
+
+???
+
+Notes: 
+- One of my goals at this conference was to understand what the RStudio Package Manager
+  was and if it solved a problem for us.
+- At its core, RStudio Package Manager is a shiny interface on top of an internal
+  package repository (CRAN, packages from GitHub, internal packages), with tools
+  for version control and analysis of package licenses.
+- If we wanted to pay $5,000 to block all CRAN mirrors (+ GitHub?) and have an 
+  internally hosted CRAN repo, with extensive versioning information, this is
+  the product for us. \$10,000 gets us a high-availability license, and \$25,000
+  gets us unlimited repositories.
+- The use case for this appears to be for companies where users are installing 
+  packages themselves, or people are launching containerized jobs which need to 
+  install very specific versions of packages.
+
+---
+
+# Package Management
+
+## Sean Lopp
+### [Announcing RStudio Package Manager](https://www.rstudio.com/products/package-manager/)
+
+## Gabor Csardi
+### [`pkg`: A Fresh Approach to Package Installation](https://github.com/r-lib/pkg)
+
+???
+
+Notes:
+- This talk on the `pkg` package, currently early in its lifecycle but being actively
+  developed, demonstrated a safer, faster, more robust vision of how `install.packages`
+  could work.
+- It solves dependencies up front and detects conflicts.
+- It downloads and installs packages in a concurrent manner.
+- It aims to not screw up your package environment if an installation fails.
+- The most valuable thing I got out of this presentation was this notion of a
+  project-specific package library, and I think it solves a problem we face:
+  how do we provide R packages to specific teams without providing those packages
+  at the system level, a de facto endorsement.
+
+---
+
+# Package Management Proposal
+
+```{r, eval=FALSE}
+# In dapg-internal program:
+# (Re)-create project-specific directory
+unlink("/projects/eg-example/Rproj_lib")
+dir.create("/projects/eg-example/Rproj_lib")
+
+# Install packages to project-specific directory
+install.packages(
+    pkgs = c("xlsx"),
+    libs = "/projects/eg-example/Rproj_lib" 
+)
+
+# In case header: 
+.libPaths(c("/projects/eg-example/Rproj_lib", .libPaths()))
+```
+
+???
+
+Notes:
+- What I propose is we maintain a Git repo in dapg-internal with scripts that
+  look like the above. They create a case-specific directory and install case-specific 
+  packages to that directory.
+- Then, we insert a command in the case team's header that adds that directory 
+  to the beginning of the package load priority.
+
+---
+
+# Programming Talks
+
+## Hadley Wickham
+### [`vctrs`: Tools for Making Size and Type Consistent Functions](https://vctrs.r-lib.org/)
+
+???
+
+Notes: 
+- Hadley kicked off the programming talks with a discussion of a package to resolve
+  some shortcomings of base R. Namely, how R coerces data types when vectors are
+  concatenated.
+- This package is intended for package developers.
+- The existence of this furthers this role RStudio and Hadley are taking as providers
+  of an infrastructure for the R community to build upon. 
+  
+---
+
+```{r, eval=FALSE}
+# combining factors makes integers
+c(factor("a"), factor("b"))
+#> [1] 1 1
+
+# combing dates and date-times give incorrect values
+dt <- as.Date("2020-01-1")
+dttm <- as.POSIXct(dt)
+
+c(dt, dttm)
+#> [1] "2020-01-01"    "4321940-06-07"
+c(dttm, dt)
+#> [1] "2020-01-01 00:00:00 UTC" "1970-01-01 05:04:22 UTC"
+```
+
+---
+
+```{r, eval=FALSE}
+vctrs::vec_c(factor("a"), factor("b"))
+#> [1] a b
+#> Levels: a b
+
+dt <- as.Date("2020-01-1")
+dttm <- as.POSIXct(dt)
+
+vctrs::vec_c(dt, dttm)
+#> [1] "2020-01-01 00:00:00 PST" "2019-12-31 16:00:00 PST"
+
+vctrs::vec_c(dttm, dt)
+#> [1] "2019-12-31 16:00:00 PST" "2020-01-01 00:00:00 PST"
+```
+
+---
+
+## Jenny Bryan
+### [Tidy Eval in Context](https://speakerdeck.com/jennybc/tidy-eval-in-context)
+
+???
+
+Notes:
+- Jenny Bryan gave a great talk in defense of Tidy Eval, which is "basically"
+  non-standard evaluation, which is "basically" name quoting.
+- This presentation also contains strategies for solving problems using existing
+  (and easier to use) tools, such as scoped verbs in dplyr.
+
+--
+
+## Lionel Henry
+### [Selecting and Doing with Tidy Eval](https://speakerdeck.com/lionelhenry/selecting-and-doing-with-tidy-eval)
+
+???
+
+Notes:
+- Lionel Henry, an RStudio package maintainer, followed with a talk about how to 
+  use tidy eval in the context of selecting columns and doing things to columns.
+- I thought this presentation would make for a great introduction into how to work
+  with tidy eval, to be followed by the "Programming in dplyr" article and Hadley's
+  "Advanced R" book.
+  
+---
+
+# Miscellaneous Talks
+
+## Rich Iannone
+### [Introducing the `gt` Package](https://gt.rstudio.com/)
+
+???
+
+Notes:
+- This might have been the most packed talk I attended. 
+- The `gt` package provides a really pleasant interface for incrementally building
+  HTML, emailable tables. (Open link and explore GitHub repo).
+- While we do have `crtables` already, I think this package might be great for 
+  inspiration and possibly even integration, if it provides the low level access
+  we need for theming.
+
+--
+
+## Angela Bassa 
+### [Data Science as a Team Sport](https://github.com/angelabassa/rstudioconf-2019)
+
+???
+
+Notes:
+- There were a series of talks about "Organization Thinking". This one focused
+  on the challenges of Data Science in organizations.
+- "Just because a data scientist can do everything doesn't mean they should". The
+  can-do-everything attitude leads to a foundation of technical debt.
+- Teams should grow for scope and maturity, not speed -- by definition, adding
+  someone does not mean other team members can work faster. Additional workers
+  require additional time and investment, but can enable larger scope of work
+  and group maturity.
+- How to grow: add specialization (Practice area, technical expertise), 
+  add processes (Documentation, Governance, Automation), and resilience (
+  hiring, on-boarding, culture, and inclusion).
+  
+---
+
+class: center, middle, inverse
+
+# Development Day
+
+???
+
+Notes:
+- On the Saturday after the conference, there was a Tidyverse Developer Day,
+  where around 50-70 people gathered to work on issues in and around the Tidyverse.
+- It was a great experience to meet several developers, learn how other organizations
+  handle contributing to R packages, and contribute to the tools I use every day.
+- I learned a couple nifty things about Rcpp, specifically printing things!
+- I talked to Jim Hester, a maintainer on the `odbc` package I've talked to in the
+  past about Netezza encoding issues. The problem is still not solved, and likely
+  whatever solution, R side, would require changes to encoding settings that would
+  cause problems elsewhere.
+  
+---
+
+class: center, middle, inverse
+
+# Final Thoughts
+
+???
+
+Notes:
+- Next year's conference is in San Francisco, January 27 to 30th. I _highly_ 
+  recommend attending if you can.
+- Attending the conference is exhausting but ultimately rewarding for the 
+  exposure you get to the community and the tools members of communities use. 
+- I found this year was especially great because I have more experience solving
+  problems at Cornerstone and can better evaluate or identify things that would
+  be helpful in work.
