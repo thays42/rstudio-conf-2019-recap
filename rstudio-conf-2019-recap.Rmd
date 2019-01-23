@@ -10,6 +10,7 @@ output:
       highlightStyle: github
       highlightLines: true
       countIncrementalSlides: false
+      ratio: 16:9
 ---
 
 ```{r setup, include=FALSE}
@@ -457,7 +458,10 @@ Notes:
   of developing things like Shiny apps. Concepts like testing (both the R functions
   underlying the app as well as integration testing) and profiling. 
   
---
+---
+
+## Joe Cheng (CTO, RStudio) 
+### [Shiny in Production](https://speakerdeck.com/jcheng5/shiny-in-production) 
 
 ## Felienne (Associate Professor, LIACS)
 ### [Explicit Direct Instruction in Programming Education](http://www.felienne.com/archives/6150)
@@ -472,7 +476,13 @@ Notes:
 - The speaker did her PhD dissertation about how Excel is a DSL for finance, and
   explaining that Excel is functional, reactive, and Turing complete.
 
---
+---
+
+## Joe Cheng (CTO, RStudio) 
+### [Shiny in Production](https://speakerdeck.com/jcheng5/shiny-in-production) 
+
+## Felienne (Associate Professor, LIACS)
+### [Explicit Direct Instruction in Programming Education](http://www.felienne.com/archives/6150)
 
 ## David Robinson (Chief Data Scientist, DataCamp)
 ### [The Unreasonable Effectiveness of Public Work](https://www.dropbox.com/s/jk7216yr30ztpdp/DavidRobinson-RStudio-2019.pdf?dl=0)
@@ -723,6 +733,16 @@ c(dttm, dt)
 #> [1] "2020-01-01 00:00:00 UTC" "1970-01-01 05:04:22 UTC"
 ```
 
+???
+
+Notes: 
+- Hadley kicked off the programming talks with a discussion of a package to resolve
+  some shortcomings of base R. Namely, how R coerces data types when vectors are
+  concatenated.
+- This package is intended for package developers.
+- The existence of this furthers this role RStudio and Hadley are taking as providers
+  of an infrastructure for the R community to build upon. 
+  
 ---
 
 ```{r, eval=FALSE}
@@ -740,7 +760,20 @@ vctrs::vec_c(dttm, dt)
 #> [1] "2019-12-31 16:00:00 PST" "2020-01-01 00:00:00 PST"
 ```
 
+???
+
+Notes: 
+- Hadley kicked off the programming talks with a discussion of a package to resolve
+  some shortcomings of base R. Namely, how R coerces data types when vectors are
+  concatenated.
+- This package is intended for package developers.
+- The existence of this furthers this role RStudio and Hadley are taking as providers
+  of an infrastructure for the R community to build upon. 
+  
 ---
+
+## Hadley Wickham
+### [`vctrs`: Tools for Making Size and Type Consistent Functions](https://vctrs.r-lib.org/)
 
 ## Jenny Bryan
 ### [Tidy Eval in Context](https://speakerdeck.com/jennybc/tidy-eval-in-context)
@@ -753,7 +786,39 @@ Notes:
 - This presentation also contains strategies for solving problems using existing
   (and easier to use) tools, such as scoped verbs in dplyr.
 
---
+---
+
+background-image: url('img/pass-dots.png')
+background-size: contain 
+
+???
+
+Notes:
+- Jenny Bryan gave a great talk in defense of Tidy Eval, which is "basically"
+  non-standard evaluation, which is "basically" name quoting.
+- This presentation also contains strategies for solving problems using existing
+  (and easier to use) tools, such as scoped verbs in dplyr.
+  
+---
+
+background-image: url('img/enquo.png')
+background-size: contain 
+
+???
+
+Notes:
+- Jenny Bryan gave a great talk in defense of Tidy Eval, which is "basically"
+  non-standard evaluation, which is "basically" name quoting.
+- This presentation also contains strategies for solving problems using existing
+  (and easier to use) tools, such as scoped verbs in dplyr.
+
+---
+
+## Hadley Wickham
+### [`vctrs`: Tools for Making Size and Type Consistent Functions](https://vctrs.r-lib.org/)
+
+## Jenny Bryan
+### [Tidy Eval in Context](https://speakerdeck.com/jennybc/tidy-eval-in-context)
 
 ## Lionel Henry
 ### [Selecting and Doing with Tidy Eval](https://speakerdeck.com/lionelhenry/selecting-and-doing-with-tidy-eval)
@@ -764,7 +829,7 @@ Notes:
 - Lionel Henry, an RStudio package maintainer, followed with a talk about how to 
   use tidy eval in the context of selecting columns and doing things to columns.
 - I thought this presentation would make for a great introduction into how to work
-  with tidy eval, to be followed by the "Programming in dplyr" article and Hadley's
+  with tidy eval, to be preceeded by Jenny Bryan's talk Tidy Eval in Context, and to be followed by the "Programming in dplyr" article and Hadley's
   "Advanced R" book.
   
 ---

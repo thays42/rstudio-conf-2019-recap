@@ -4,7 +4,7 @@
     <title>rstudio::conf(2019L)</title>
     <meta charset="utf-8">
     <meta name="author" content="Tyler Hays" />
-    <meta name="date" content="2019-01-20" />
+    <meta name="date" content="2019-01-22" />
     <link href="libs/remark-css/default.css" rel="stylesheet" />
     <link href="libs/remark-css/default-fonts.css" rel="stylesheet" />
   </head>
@@ -15,7 +15,7 @@ class: center, middle, inverse, title-slide
 # <code>rstudio::conf(2019L)</code>
 ## January 15-19 @ Austin, Texas
 ### Tyler Hays
-### 2019-01-20
+### 2019-01-22
 
 ---
 
@@ -644,7 +644,10 @@ Notes:
   of developing things like Shiny apps. Concepts like testing (both the R functions
   underlying the app as well as integration testing) and profiling. 
   
---
+---
+
+## Joe Cheng (CTO, RStudio) 
+### [Shiny in Production](https://speakerdeck.com/jcheng5/shiny-in-production) 
 
 ## Felienne (Associate Professor, LIACS)
 ### [Explicit Direct Instruction in Programming Education](http://www.felienne.com/archives/6150)
@@ -659,7 +662,13 @@ Notes:
 - The speaker did her PhD dissertation about how Excel is a DSL for finance, and
   explaining that Excel is functional, reactive, and Turing complete.
 
---
+---
+
+## Joe Cheng (CTO, RStudio) 
+### [Shiny in Production](https://speakerdeck.com/jcheng5/shiny-in-production) 
+
+## Felienne (Associate Professor, LIACS)
+### [Explicit Direct Instruction in Programming Education](http://www.felienne.com/archives/6150)
 
 ## David Robinson (Chief Data Scientist, DataCamp)
 ### [The Unreasonable Effectiveness of Public Work](https://www.dropbox.com/s/jk7216yr30ztpdp/DavidRobinson-RStudio-2019.pdf?dl=0)
@@ -919,7 +928,63 @@ Notes:
 - The existence of this furthers this role RStudio and Hadley are taking as providers
   of an infrastructure for the R community to build upon. 
   
---
+---
+
+
+```r
+# combining factors makes integers
+c(factor("a"), factor("b"))
+#&gt; [1] 1 1
+
+# combing dates and date-times give incorrect values
+dt &lt;- as.Date("2020-01-1")
+dttm &lt;- as.POSIXct(dt)
+
+c(dt, dttm)
+#&gt; [1] "2020-01-01"    "4321940-06-07"
+c(dttm, dt)
+#&gt; [1] "2020-01-01 00:00:00 UTC" "1970-01-01 05:04:22 UTC"
+```
+
+???
+
+Notes: 
+- Hadley kicked off the programming talks with a discussion of a package to resolve
+  some shortcomings of base R. Namely, how R coerces data types when vectors are
+  concatenated.
+- This package is intended for package developers.
+- The existence of this furthers this role RStudio and Hadley are taking as providers
+  of an infrastructure for the R community to build upon. 
+  
+---
+
+
+```r
+vctrs::vec_c(factor("a"), factor("b"))
+#&gt; [1] a b
+#&gt; Levels: a b
+
+dt &lt;- as.Date("2020-01-1")
+dttm &lt;- as.POSIXct(dt)
+
+vctrs::vec_c(dt, dttm)
+#&gt; [1] "2020-01-01 00:00:00 PST" "2019-12-31 16:00:00 PST"
+
+vctrs::vec_c(dttm, dt)
+#&gt; [1] "2019-12-31 16:00:00 PST" "2020-01-01 00:00:00 PST"
+```
+
+???
+
+Notes: 
+- Hadley kicked off the programming talks with a discussion of a package to resolve
+  some shortcomings of base R. Namely, how R coerces data types when vectors are
+  concatenated.
+- This package is intended for package developers.
+- The existence of this furthers this role RStudio and Hadley are taking as providers
+  of an infrastructure for the R community to build upon. 
+  
+---
 
 ## Jenny Bryan
 ### [Tidy Eval in Context](https://speakerdeck.com/jennybc/tidy-eval-in-context)
@@ -958,7 +1023,7 @@ Notes:
 Notes:
 - This might have been the most packed talk I attended. 
 - The `gt` package provides a really pleasant interface for incrementally building
-  HTML, emailable tables. 
+  HTML, emailable tables. (Open link and explore GitHub repo).
 - While we do have `crtables` already, I think this package might be great for 
   inspiration and possibly even integration, if it provides the low level access
   we need for theming.
@@ -972,7 +1037,16 @@ Notes:
 
 Notes:
 - There were a series of talks about "Organization Thinking". This one focused
-  on the challenges of Data Science in organizations when it comes to ...,
+  on the challenges of Data Science in organizations.
+- "Just because a data scientist can do everything doesn't mean they should". The
+  can-do-everything attitude leads to a foundation of technical debt.
+- Teams should grow for scope and maturity, not speed -- by definition, adding
+  someone does not mean other team members can work faster. Additional workers
+  require additional time and investment, but can enable larger scope of work
+  and group maturity.
+- How to grow: add specialization (Practice area, technical expertise), 
+  add processes (Documentation, Governance, Automation), and resilience (
+  hiring, on-boarding, culture, and inclusion).
   
 ---
 
@@ -1014,7 +1088,8 @@ Notes:
 <script>var slideshow = remark.create({
 "highlightStyle": "github",
 "highlightLines": true,
-"countIncrementalSlides": false
+"countIncrementalSlides": false,
+"ratio": "16:9"
 });
 if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
   window.dispatchEvent(new Event('resize'));
